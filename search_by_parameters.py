@@ -6,16 +6,14 @@ from urllib.parse import urljoin
 
 
 class SearchByParameters:
-    def __init__(self, query: str, lang: str, num_of_result_pages: int):
-        self.url = None
+    def __init__(self, query: dict, lang: str, num_of_result_pages: int):
         self.query = query
-        self.google_result = None
-        self.soup = None
-        self.link = None
+        self.all_query = ' '.join(map(str, query.values()))
+        self.google_results = None
         self.num_of_result_pages = num_of_result_pages
-        self.details = {}
         self.lang = lang
-        self.tld, self.contact = SearchByParameters.get_tld_and_contact_trans_by_country(lang='il')
+        self.tld = SearchByParameters.get_tld_and_contact_trans_by_country(lang='il')
+        self.contact = SearchByParameters.get_tld_and_contact_trans_by_country(lang='il')
 
     #     todo build query to get contact details from google
     def build_query(self):
@@ -46,8 +44,8 @@ class SearchByParameters:
         :param res_num:
         :return: list of business url's
         """
-        self.google_result = [q for q in search(self.query, tld=self.tld, num=res_num, stop=self.num_of_result_pages, pause=3, hashes = set())]
-        return self.google_result
+        self.google_results = [q for q in search(self.all_query, tld=self.tld, num=res_num, stop=self.num_of_result_pages, pause=3, hashes = set())]
+        return self.google_results
 
     def get_xml_elements(self, url):
         self.url = url
