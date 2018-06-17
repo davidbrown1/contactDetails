@@ -1,6 +1,8 @@
 from googlesearch import search
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Comment
+import html5lib
 import re
 from urllib.parse import urljoin
 
@@ -37,7 +39,7 @@ class SearchByParameters:
         else:
             self.details[company] = {"for on all exist contact details, and added with k & v, value entered in set"}
 
-    def result_from_google(self, res_num=12):
+    def business_web_from_google(self, res_num=12):
         """
         search about business by the desired parameters (google land domain, language, limit of result,
             pause between searches
@@ -50,7 +52,7 @@ class SearchByParameters:
     def get_xml_elements(self, url):
         self.url = url
         r = requests.get(url)
-        self.soup = BeautifulSoup(r.content)
+        self.soup = BeautifulSoup(r.content, 'html5lib')
         return self.soup
 
     def get_contact_us(self):
@@ -68,6 +70,13 @@ class SearchByParameters:
         emails = re.findall(r'([\w\.-]+@[\w\.-]+\.[\w]+)+', r.content)
         return phones, emails
 
+    def get_email(self, soup: BeautifulSoup):
+        all_text = text_from_html(soup)
+        emails = re.findall(r'([\w\.-]+@[\w\.-]+\.[\w]+)+', all_text)
+        emails.append(soup.findAll(attrs=re.compile('email')))
+        emails = emails + [soup()]
+
+
     @staticmethod
     def get_tld_and_contact_trans_by_country(lang):
         tld_dic = {'us': 'com', 'uk': 'co.uk', 'france': 'fr', 'italy': 'it', 'il': 'co.il'}
@@ -76,22 +85,35 @@ class SearchByParameters:
 
     def start_scraping(self):
         self.search_details_with_google()
-        self.result_from_google()
+        self.business_web_from_google()
 
 
-try:
-    q = SearchByParameters('shoes store', lang='il')
-    # q.result_from_google()
-    q.get_xml_elements("https://www.tami4.co.il/reverse-osmosis")
+def tag_visible(element):
+    if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
+        return False
+    if isinstance(element, Comment):
+        return False
+    return True
 
-    # q.get_xml_elements(q.google_result[-1])
-#     q.get_contact_us()
-#     print(q.get_details())
-except Exception as e:
-    print(e)
+
+def text_from_html(soup):
+    texts = soup.findAll(text=True)
+    visible_texts = filter(tag_visible, texts)
+    return u" ".join(t.strip() for t in visible_texts)
+
+# try:
+#     q = SearchByParameters('shoes store', lang='il')
+#     # q.result_from_google()
+#     q.get_xml_elements("https://www.tami4.co.il/reverse-osmosis")
+#
+#     # q.get_xml_elements(q.google_result[-1])
+# #     q.get_contact_us()
+# #     print(q.get_details())
+# except Exception as e:
+#     print(e)
 
 # todo if not self.link dont run get details, TODO custom contact us by lang and by string playing
 
-# contact us, Customer Experience, help, Email Us, write to us, About Us, contact in href, צור קשר, יצירת קשר
+# contact us, Customer Experience, help, Email Us, write to us, About Us, contact in href, צור קשר, יצירת קשר, about
 # itemprop="telephone", <a href="tel:00441506468733">+44 1506 468 733</a>, type=email, type=tel, name=firstname, lastname, tag address
 
